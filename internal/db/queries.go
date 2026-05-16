@@ -143,24 +143,23 @@ func (db *DB) GetWALStats(ctx context.Context) (*WALStats, error) {
 	var stats WALStats
 
 	err := db.conn.QueryRow(ctx, `
-		SELECT
-			pg_current_wal_lsn()::text,
-			pg_wal_lsn_diff(pg_current_wal_lsn(), '0/0'),
-			sum(n_dead_tup),
-			sum(n_live_tup),
-			sum(n_autoanalyze_count),
-			checkpoints_timed + checkpoints_req
-		FROM pg_stat_user_tables, pg_stat_bgwriter
-		GROUP BY 1, 2, 6
-		LIMIT 1
-	`).Scan(
-		&stats.CurrentLSN,
-		&stats.WALBytesPS,
-		&stats.DeadTuples,
-		&stats.LiveTuples,
-		&stats.AutovacuumCount,
-		&stats.CheckpointsPS,
-	)
+    SELECT
+        pg_current_wal_lsn()::text,
+        pg_wal_lsn_diff(pg_current_wal_lsn(), '0/0'),
+        0::bigint,
+        0::bigint,
+		0::bigint,
+        num_timed + num_requested
+    FROM pg_stat_checkpointer
+    LIMIT 1
+`).Scan(
+    &stats.CurrentLSN,
+    &stats.WALBytesPS,
+    &stats.DeadTuples,
+    &stats.LiveTuples,
+    &stats.AutovacuumCount,
+    &stats.CheckpointsPS,
+)
 	if err != nil {
 		return nil, err
 	}
