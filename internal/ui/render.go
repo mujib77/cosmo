@@ -8,6 +8,30 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
+
+var (
+    goodStyle = lipgloss.NewStyle().
+            Foreground(lipgloss.Color("#00ff88")).
+            Bold(true)
+
+    warnStyle = lipgloss.NewStyle().
+            Foreground(lipgloss.Color("#ffaa00")).
+            Bold(true)
+
+    critStyle = lipgloss.NewStyle().
+            Foreground(lipgloss.Color("#ff4444")).
+            Bold(true)
+)
+
+func healthColor(value float64, good float64, warn float64) lipgloss.Style {
+    if value >= good {
+        return goodStyle
+    } else if value >= warn {
+        return warnStyle
+    }
+    return critStyle
+}
+
 var (
 	titleStyle = lipgloss.NewStyle().
 			Bold(true).
@@ -76,18 +100,27 @@ func RenderDashboard(m Model) string {
 }
 
 func renderOverview(m Model) string {
-	if m.overview == nil {
-		return "loading..."
-	}
-	o := m.overview
-	return fmt.Sprintf("%s\n\n%s %s\n%s %s\n%s %d / %d\n%s %.2f%%\n%s %s",
-		titleStyle.Render("DB OVERVIEW"),
-		labelStyle.Render("database:"), valueStyle.Render(o.DatabaseName),
-		labelStyle.Render("size:"), valueStyle.Render(o.TotalSize),
-		labelStyle.Render("connections:"), o.ActiveConns, o.MaxConns,
-		labelStyle.Render("cache hit:"), o.CacheHitRatio,
-		labelStyle.Render("uptime:"), valueStyle.Render(o.Uptime),
-	)
+    if m.overview == nil {
+        return "loading..."
+    }
+    o := m.overview
+
+    connPct := float64(o.ActiveConns) / float64(o.MaxConns) * 100
+    connStyle := healthColor(100-connPct, 80, 50)
+    cacheStyle := healthColor(o.CacheHitRatio, 95, 80)
+
+    return fmt.Sprintf("%s\n\n%s %s\n%s %s\n%s %s\n%s %s\n%s %s",
+        titleStyle.Render("DB OVERVIEW"),
+        labelStyle.Render("database:"), valueStyle.Render(o.DatabaseName),
+        labelStyle.Render("size:"), valueStyle.Render(o.TotalSize),
+        labelStyle.Render("connections:"), connStyle.Render(
+            fmt.Sprintf("%d / %d", o.ActiveConns, o.MaxConns),
+        ),
+        labelStyle.Render("cache hit:"), cacheStyle.Render(
+            fmt.Sprintf("%.2f%%", o.CacheHitRatio),
+        ),
+        labelStyle.Render("uptime:"), valueStyle.Render(o.Uptime),
+    )
 }
 
 func renderQueries(m Model) string {
