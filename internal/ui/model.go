@@ -88,6 +88,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m, tea.Quit
 			case "tab":
 				m.activePanel = (m.activePanel + 1) % 4
+			case "r", "R":
+				return m, m.fetchData()
 			}
 		
 		case tea.WindowSizeMsg:
