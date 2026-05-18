@@ -2,6 +2,7 @@ package ui
 
 import (
 	"fmt"
+	"time"
 	"strings"
 
 	"github.com/charmbracelet/lipgloss"
@@ -52,7 +53,12 @@ func RenderDashboard(m Model) string {
 	topRow := lipgloss.JoinHorizontal(lipgloss.Top, topLeft, topRight)
 	bottomRow := lipgloss.JoinHorizontal(lipgloss.Top, bottomLeft, bottomRight)
 
-	header := titleStyle.Render("  COSMO — PostgreSQL Mission Control  ")
+	now := time.Now().Format("15:04:05")
+    header := lipgloss.JoinHorizontal(
+    lipgloss.Top,
+    titleStyle.Render("  COSMO — PostgreSQL Mission Control  "),
+    labelStyle.Render("  "+now+"  "),
+)
 	footer := labelStyle.Render("  tab: switch panel  q: quit  ")
 
 	return lipgloss.JoinVertical(
