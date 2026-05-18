@@ -3,15 +3,15 @@ package db
 import (
 	"context"
 
-	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type DB struct {
-	conn *pgx.Conn
+	conn *pgxpool.Pool
 }
 
 func New(databaseURL string) (*DB, error) {
-	conn, err := pgx.Connect(context.Background(), databaseURL)
+	conn, err := pgxpool.New(context.Background(), databaseURL)
 	if err != nil {
 		return nil, err
 	}
@@ -19,7 +19,7 @@ func New(databaseURL string) (*DB, error) {
 }
 
 func (db *DB) Close() {
-	db.conn.Close(context.Background())
+	db.conn.Close()
 }
 
 type OverviewStats struct {
