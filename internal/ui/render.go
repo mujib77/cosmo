@@ -146,12 +146,17 @@ func renderWAL(m Model) string {
 		return "loading..."
 	}
 	w := m.walStats
-	return fmt.Sprintf("%s\n\n%s %s\n%s %d\n%s %d\n%s %d",
+	return fmt.Sprintf("%s\n\n%s %s\n%s\n%s %s\n%s %s\n%s %s",
 		titleStyle.Render("WAL & MVCC"),
-		labelStyle.Render("current lsn:"), valueStyle.Render(w.CurrentLSN),
-		labelStyle.Render("dead tuples:"), w.DeadTuples,
-		labelStyle.Render("live tuples:"), w.LiveTuples,
-		labelStyle.Render("checkpoints:"), w.CheckpointsPS,
+		labelStyle.Render("current lsn:"),
+		goodStyle.Render(w.CurrentLSN),
+		labelStyle.Render("────────────────────"),
+		labelStyle.Render("dead tuples:"),
+		valueStyle.Render(fmt.Sprintf("%d", w.DeadTuples)),
+		labelStyle.Render("live tuples:"),
+		goodStyle.Render(fmt.Sprintf("%d", w.LiveTuples)),
+		labelStyle.Render("checkpoints:"),
+		valueStyle.Render(fmt.Sprintf("%d", w.CheckpointsPS)),
 	)
 }
 
