@@ -59,7 +59,12 @@ func RenderDashboard(m Model) string {
     titleStyle.Render("  COSMO — PostgreSQL Mission Control  "),
     labelStyle.Render("  "+now+"  "),
 )
-	footer := labelStyle.Render("  tab: switch panel  q: quit  ")
+	footer := lipgloss.JoinHorizontal(
+		lipgloss.Top,
+		labelStyle.Render("  tab: switch panel  q: quit  "),
+		labelStyle.Render("  |  auto-refresh: 2s  "),
+		labelStyle.Render("  |  cosmo v0.2.0  "),
+	)
 
 	return lipgloss.JoinVertical(
 		lipgloss.Left,
