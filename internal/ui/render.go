@@ -133,7 +133,7 @@ func renderOverview(m Model) string {
 	cacheStyle := healthColor(o.CacheHitRatio, 95, 80)
 
 	connBar := progressBar(o.ActiveConns, o.MaxConns, 20)
-	cacheBar := progressBar(int(o.CacheHitRatio), 100, 20)
+	cacheBar := progressBarInverted(int(o.CacheHitRatio), 100, 20)
 
 	return fmt.Sprintf(
 		"%s\n\n%s %s\n%s %s\n%s %s\n%s %s\n%s\n%s %s\n%s\n%s %s\n%s %s",
@@ -251,4 +251,22 @@ func formatNumber(n int64) string {
 		result += string(c)
 	}
 	return result
+}
+
+func progressBarInverted(value int, max int, width int) string {
+	if max == 0 {
+		return ""
+	}
+	pct := float64(value) / float64(max)
+	filled := int(pct * float64(width))
+	empty := width - filled
+
+	bar := strings.Repeat("░", filled) + strings.Repeat("█", empty)
+
+	if pct > 0.95 {
+		return goodStyle.Render(bar)
+	} else if pct > 0.80 {
+		return warnStyle.Render(bar)
+	}
+	return critStyle.Render(bar)
 }
