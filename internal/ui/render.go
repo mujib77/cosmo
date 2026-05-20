@@ -183,15 +183,16 @@ func renderWAL(m Model) string {
 	}
 	walBar := progressBar(int(m.walStats.WALRateMBPS*10), 100, 20)
 
-	return fmt.Sprintf("%s\n\n%s %s\n%s\n%s %s\n%s\n%s %s\n%s %s\n%s %s",
-		titleStyle.Render("✦ WAL & MVCC"),
-		labelStyle.Render("current lsn:"), goodStyle.Render(m.walStats.CurrentLSN),
-		labelStyle.Render("wal rate:"), walRateStyle.Render(walRate), walBar,
-		labelStyle.Render("────────────────────"),
-		labelStyle.Render("dead tuples:"), valueStyle.Render(formatNumber(m.walStats.DeadTuples)),
-		labelStyle.Render("live tuples:"), goodStyle.Render(formatNumber(m.walStats.LiveTuples)),
-		labelStyle.Render("checkpoints:"), valueStyle.Render(formatNumber(m.walStats.CheckpointsPS)),
-	)
+	return fmt.Sprintf("%s\n\n%s %s\n%s %s %s\n%s\n%s %s\n%s %s\n%s %s\n%s %s",
+    titleStyle.Render("✦ WAL & MVCC"),
+    labelStyle.Render("current lsn:"), goodStyle.Render(m.walStats.CurrentLSN),
+    labelStyle.Render("wal rate:   "), walRateStyle.Render(walRate), walBar,
+    labelStyle.Render("────────────────────"),
+    labelStyle.Render("dead tuples:"), valueStyle.Render(formatNumber(m.walStats.DeadTuples)),
+    labelStyle.Render("live tuples:"), goodStyle.Render(formatNumber(m.walStats.LiveTuples)),
+    labelStyle.Render("checkpoints:"), valueStyle.Render(formatNumber(m.walStats.CheckpointsPS)),
+    labelStyle.Render("last vacuum:"), valueStyle.Render(m.walStats.LastVacuum),
+)
 }
 
 func renderLocks(m Model) string {

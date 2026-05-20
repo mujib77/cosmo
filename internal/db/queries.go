@@ -58,6 +58,7 @@ type WALStats struct {
 	AutovacuumCount int64
 	CheckpointsPS  int64
 	WALRateMBPS     float64
+	LastVacuum      string
 }
 
 type LockInfo struct {
@@ -171,6 +172,21 @@ func (db *DB) GetWALStats(ctx context.Context) (*WALStats, error) {
     &stats.AutovacuumCount,
     &stats.CheckpointsPS,
 )
+
+var lastVacuum string
+err = db.conn.QueryRow(ctx, `
+    SELECT 
+        COALESCE(
+            date_trunc('second', now() - max(last_autovacuum))::text,
+            'never'
+        )
+    FROM pg_stat_user_tables
+`).Scan(&lastVacuum)
+if err != nil || lastVacuum == "" {
+    lastVacuum = "never"
+}
+stats.LastVacuum = lastVacuum
+
 	if err != nil {
 		return nil, err
 	}
