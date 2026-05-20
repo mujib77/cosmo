@@ -135,7 +135,7 @@ func renderOverview(m Model) string {
 	connBar := progressBar(o.ActiveConns, o.MaxConns, 20)
 
     return fmt.Sprintf("%s\n\n%s %s\n%s %s\n%s %s\n%s %s\n%s\n%s %s\n%s %s\n%s %s",
-    titleStyle.Render("DB OVERVIEW"),
+    titleStyle.Render("✦ DB OVERVIEW"),
     labelStyle.Render("database:"), valueStyle.Render(o.DatabaseName),
     labelStyle.Render("version:"), valueStyle.Render("PostgreSQL "+o.Version),
     labelStyle.Render("size:"), valueStyle.Render(o.TotalSize),
@@ -156,11 +156,11 @@ func renderOverview(m Model) string {
 
 func renderQueries(m Model) string {
 	if len(m.queries) == 0 {
-		return titleStyle.Render("ACTIVE QUERIES") + "\n\nno active queries"
+		return titleStyle.Render("✦ ACTIVE QUERIES") + "\n\nno active queries"
 	}
 
 	var sb strings.Builder
-	sb.WriteString(titleStyle.Render("ACTIVE QUERIES") + "\n\n")
+	sb.WriteString(titleStyle.Render("✦ ACTIVE QUERIES") + "\n\n")
 
 	for _, q := range m.queries {
 		sb.WriteString(fmt.Sprintf("%s %s  %s %s\n%s\n\n",
@@ -181,11 +181,13 @@ func renderWAL(m Model) string {
 	if m.walStats.WALRateMBPS > 50 {
 		walRateStyle = critStyle
 	}
+	walBar := progressBar(int(m.walStats.WALRateMBPS*10), 100, 20)
 
-	return fmt.Sprintf("%s\n\n%s %s\n%s %s\n%s\n%s %s\n%s %s\n%s %s",
-		titleStyle.Render("WAL & MVCC"),
+	return fmt.Sprintf("%s\n\n%s %s\n%s\n%s %s\n%s\n%s %s\n%s %s\n%s %s",
+		titleStyle.Render("✦ WAL & MVCC"),
 		labelStyle.Render("current lsn:"), goodStyle.Render(m.walStats.CurrentLSN),
 		labelStyle.Render("wal rate:"), walRateStyle.Render(walRate),
+		labelStyle.Render("wal rate:   ")+walRateStyle.Render(walRate)+" "+walBar,
 		labelStyle.Render("────────────────────"),
 		labelStyle.Render("dead tuples:"), valueStyle.Render(formatNumber(m.walStats.DeadTuples)),
 		labelStyle.Render("live tuples:"), goodStyle.Render(formatNumber(m.walStats.LiveTuples)),
@@ -195,11 +197,11 @@ func renderWAL(m Model) string {
 
 func renderLocks(m Model) string {
 	if len(m.locks) == 0 {
-		return titleStyle.Render("LOCKS & WAITS") + "\n\nno locks"
+		return titleStyle.Render("✦ LOCKS & WAITS") + "\n\nno locks"
 	}
 
 	var sb strings.Builder
-	sb.WriteString(titleStyle.Render("LOCKS & WAITS") + "\n\n")
+	sb.WriteString(titleStyle.Render("✦ LOCKS & WAITS") + "\n\n")
 
 	for _, l := range m.locks {
 		granted := "waiting"
