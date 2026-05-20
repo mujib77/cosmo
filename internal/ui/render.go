@@ -196,20 +196,23 @@ func renderWAL(m Model) string {
 
 func renderLocks(m Model) string {
 	if len(m.locks) == 0 {
-		return titleStyle.Render("✦ LOCKS & WAITS") + "\n\nno locks"
+		return titleStyle.Render("✦ LOCKS & WAITS") + "\n\n" +
+			goodStyle.Render("  ✓ clean — no locks")
 	}
 
 	var sb strings.Builder
 	sb.WriteString(titleStyle.Render("✦ LOCKS & WAITS") + "\n\n")
 
 	for _, l := range m.locks {
-		granted := "waiting"
-		if l.Granted {
-			granted = "granted"
+		granted := goodStyle.Render("granted")
+		if !l.Granted {
+			granted = critStyle.Render("waiting")
 		}
-		sb.WriteString(fmt.Sprintf("%s %s  %s %s\n%s\n\n",
+		sb.WriteString(fmt.Sprintf("%s %s  %s %s\n%s %s  %s %d\n%s\n\n",
 			labelStyle.Render("type:"), valueStyle.Render(l.LockType),
-			labelStyle.Render("status:"), valueStyle.Render(granted),
+			labelStyle.Render("status:"), granted,
+			labelStyle.Render("table:"), valueStyle.Render(l.Table),
+			labelStyle.Render("pid:"), l.PID,
 			labelStyle.Render(truncate(l.Query, 50)),
 		))
 	}

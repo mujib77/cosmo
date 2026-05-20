@@ -67,6 +67,7 @@ type LockInfo struct {
 	Granted    bool
 	WaitEvent  string
 	Query      string
+	Table      string
 }
 
 func (db *DB) GetOverviewStats(ctx context.Context) (*OverviewStats, error) {
@@ -190,14 +191,17 @@ func (db *DB) GetLocks(ctx context.Context) ([]LockInfo, error) {
 	rows, err := db.conn.Query(ctx, `
 		SELECT
 			a.pid,
-			a.usename,
+			COALESCE(a.usename, 'unknown'),
 			l.locktype,
 			l.granted,
 			COALESCE(a.wait_event, 'none'),
-			LEFT(a.query, 60)
+			LEFT(COALESCE(a.query, ''), 60),
+			COALESCE(c.relname, 'unknown')
 		FROM pg_locks l
 		JOIN pg_stat_activity a ON l.pid = a.pid
+		LEFT JOIN pg_class c ON l.relation = c.oid
 		WHERE a.query NOT LIKE '%pg_locks%'
+		AND a.pid != pg_backend_pid()
 		ORDER BY l.granted ASC
 		LIMIT 10
 	`)
@@ -216,6 +220,7 @@ func (db *DB) GetLocks(ctx context.Context) ([]LockInfo, error) {
 			&l.Granted,
 			&l.WaitEvent,
 			&l.Query,
+			&l.Table,
 		)
 		if err != nil {
 			continue
