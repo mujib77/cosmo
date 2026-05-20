@@ -217,6 +217,9 @@ func (db *DB) GetLocks(ctx context.Context) ([]LockInfo, error) {
 		JOIN pg_stat_activity a ON l.pid = a.pid
 		LEFT JOIN pg_class c ON l.relation = c.oid
 		WHERE a.query NOT LIKE '%pg_locks%'
+		AND a.query NOT LIKE '%pg_stat%'
+		AND l.granted = true
+		AND a.state = 'active'
 		AND a.pid != pg_backend_pid()
 		ORDER BY l.granted ASC
 		LIMIT 10
