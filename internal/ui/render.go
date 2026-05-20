@@ -132,22 +132,26 @@ func renderOverview(m Model) string {
 	connStyle := healthColor(100-connPct, 80, 50)
 	cacheStyle := healthColor(o.CacheHitRatio, 95, 80)
 
-	return fmt.Sprintf("%s\n\n%s %s\n%s %s\n%s %s\n%s %s\n%s %s\n%s %s\n%s %s",
-		titleStyle.Render("DB OVERVIEW"),
-		labelStyle.Render("database:"), valueStyle.Render(o.DatabaseName),
-		labelStyle.Render("version:"), valueStyle.Render("PostgreSQL "+o.Version),
-		labelStyle.Render("size:"), valueStyle.Render(o.TotalSize),
-		labelStyle.Render("connections:"), connStyle.Render(
-			fmt.Sprintf("%d / %d", o.ActiveConns, o.MaxConns),
-		),
-		labelStyle.Render("cache hit:"), cacheStyle.Render(
-			fmt.Sprintf("%.2f%%", o.CacheHitRatio),
-		),
-		labelStyle.Render("uptime:"), valueStyle.Render(o.Uptime),
-		labelStyle.Render("transactions:"), valueStyle.Render(
-			fmt.Sprintf("%d", o.TransactionsPS),
-		),
-	)
+	connBar := progressBar(o.ActiveConns, o.MaxConns, 20)
+
+    return fmt.Sprintf("%s\n\n%s %s\n%s %s\n%s %s\n%s %s\n%s\n%s %s\n%s %s\n%s %s",
+    titleStyle.Render("DB OVERVIEW"),
+    labelStyle.Render("database:"), valueStyle.Render(o.DatabaseName),
+    labelStyle.Render("version:"), valueStyle.Render("PostgreSQL "+o.Version),
+    labelStyle.Render("size:"), valueStyle.Render(o.TotalSize),
+    labelStyle.Render("connections:"), connStyle.Render(
+        fmt.Sprintf("%d / %d", o.ActiveConns, o.MaxConns),
+    ),
+    connBar,
+    labelStyle.Render("cache hit:"), cacheStyle.Render(
+        fmt.Sprintf("%.2f%%", o.CacheHitRatio),
+    ),
+    labelStyle.Render("uptime:"), valueStyle.Render(o.Uptime),
+    labelStyle.Render("transactions:"), valueStyle.Render(
+        fmt.Sprintf("%d", o.TransactionsPS),
+    ),
+)
+
 }
 
 func renderQueries(m Model) string {
@@ -216,4 +220,22 @@ func truncate(s string, n int) string {
 		return s
 	}
 	return s[:n] + "..."
+}
+
+func progressBar(current int, max int, width int) string {
+	if max == 0 {
+		return ""
+	}
+	pct := float64(current) / float64(max)
+	filled := int(pct * float64(width))
+	empty := width - filled
+
+	bar := strings.Repeat("█", filled) + strings.Repeat("░", empty)
+
+	if pct > 0.9 {
+		return critStyle.Render(bar)
+	} else if pct > 0.7 {
+		return warnStyle.Render(bar)
+	}
+	return goodStyle.Render(bar)
 }
