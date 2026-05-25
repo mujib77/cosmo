@@ -22,6 +22,7 @@ var (
 			Bold(true)
 )
 
+// healthColor determines the color style based on the value's health status.
 func healthColor(value float64, good float64, warn float64) lipgloss.Style {
 	if value >= good {
 		return goodStyle
@@ -49,6 +50,7 @@ var (
 			Bold(true)
 )
 
+// RenderDashboard renders the entire dashboard interface.
 func RenderDashboard(m Model) string {
 	halfWidth := m.width/2 - 4
 	halfHeight := m.height/2 - 4
@@ -122,6 +124,7 @@ func RenderDashboard(m Model) string {
 	)
 }
 
+// renderOverview renders the database overview panel.
 func renderOverview(m Model) string {
 	if m.overview == nil {
 		return "loading..."
@@ -154,6 +157,7 @@ func renderOverview(m Model) string {
 	)
 }
 
+// renderQueries renders the active queries panel.
 func renderQueries(m Model) string {
 	if len(m.queries) == 0 {
 		return titleStyle.Render("✦ ACTIVE QUERIES") + "\n\nno active queries"
@@ -172,6 +176,7 @@ func renderQueries(m Model) string {
 	return sb.String()
 }
 
+// renderWAL renders the WAL and MVCC statistics panel.
 func renderWAL(m Model) string {
 	walRate := fmt.Sprintf("%.3f MB/s", m.walStats.WALRateMBPS)
 	walRateStyle := goodStyle
@@ -195,6 +200,7 @@ func renderWAL(m Model) string {
 )
 }
 
+// renderLocks renders the locks and waits panel.
 func renderLocks(m Model) string {
 	if len(m.locks) == 0 {
 		return titleStyle.Render("✦ LOCKS & WAITS") + "\n\n" +
@@ -220,6 +226,7 @@ func renderLocks(m Model) string {
 	return sb.String()
 }
 
+// truncate shortens a string to the specified length and appends an ellipsis if needed.
 func truncate(s string, n int) string {
 	if len(s) <= n {
 		return s
@@ -227,6 +234,7 @@ func truncate(s string, n int) string {
 	return s[:n] + "..."
 }
 
+// progressBar generates a visual progress bar string.
 func progressBar(current int, max int, width int) string {
 	if max == 0 {
 		return ""
@@ -245,6 +253,7 @@ func progressBar(current int, max int, width int) string {
 	return goodStyle.Render(bar)
 }
 
+// formatNumber formats an integer into a comma-separated string representation.
 func formatNumber(n int64) string {
 	str := fmt.Sprintf("%d", n)
 	result := ""
@@ -257,6 +266,7 @@ func formatNumber(n int64) string {
 	return result
 }
 
+// progressBarInverted generates an inverted visual progress bar string.
 func progressBarInverted(value int, max int, width int) string {
 	if max == 0 {
 		return ""

@@ -21,6 +21,7 @@ type StartupStep struct {
 type startupStepDone int
 type startupComplete struct{}
 
+// NewStartup creates and initializes a new StartupModel instance.
 func NewStartup() StartupModel {
 	return StartupModel{
 		steps: []StartupStep{
@@ -33,16 +34,19 @@ func NewStartup() StartupModel {
 	}
 }
 
+// Init initializes the startup sequence by starting the first step.
 func (s StartupModel) Init() tea.Cmd {
 	return nextStartupStep(0)
 }
 
+// nextStartupStep returns a command to advance to the specified startup step after a delay.
 func nextStartupStep(step int) tea.Cmd {
 	return tea.Tick(400*time.Millisecond, func(t time.Time) tea.Msg {
 		return startupStepDone(step)
 	})
 }
 
+// Update handles messages and updates the startup model state.
 func (s StartupModel) Update(msg tea.Msg) (StartupModel, tea.Cmd) {
 	switch msg := msg.(type) {
 	case startupStepDone:
@@ -63,6 +67,7 @@ func (s StartupModel) Update(msg tea.Msg) (StartupModel, tea.Cmd) {
 	return s, nil
 }
 
+// View renders the startup interface based on the current step.
 func (s StartupModel) View() string {
 	cyan := "\033[36m"
 	green := "\033[32m"

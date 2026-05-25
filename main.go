@@ -24,10 +24,12 @@ type rootModel struct {
 	db      *db.DB
 }
 
+// Init initializes the root model by deferring to the startup model.
 func (r rootModel) Init() tea.Cmd {
 	return r.startup.Init()
 }
 
+// Update handles all incoming messages and routes them to the appropriate active model.
 func (r rootModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
     switch msg := msg.(type) {
     case tea.KeyMsg:
@@ -55,6 +57,7 @@ func (r rootModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
     return r, cmd
 }
 
+// View renders the application's root interface based on the current state.
 func (r rootModel) View() string {
 	if r.state == stateStartup {
 		return r.startup.View()
@@ -62,6 +65,7 @@ func (r rootModel) View() string {
 	return r.dashboard.View()
 }
 
+// main is the entry point for the application.
 func main() {
 	cfg := config.Load()
 

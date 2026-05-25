@@ -12,6 +12,7 @@ type Config struct {
 	RefreshRate int
 }
 
+// Load reads the configuration from environment variables and returns a Config.
 func Load() Config {
 	err := godotenv.Load()
 	if err != nil {

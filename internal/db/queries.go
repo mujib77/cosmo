@@ -13,6 +13,7 @@ type DB struct {
 	prevTime time.Time
 }
 
+// New creates a new database connection pool and returns a DB instance.
 func New(databaseURL string) (*DB, error) {
 	pool, err := pgxpool.New(context.Background(), databaseURL)
 	if err != nil {
@@ -24,6 +25,7 @@ func New(databaseURL string) (*DB, error) {
 	}, nil
 }
 
+// Close closes the database connection pool.
 func (db *DB) Close() {
 	db.conn.Close()
 }
@@ -71,6 +73,7 @@ type LockInfo struct {
 	Table      string
 }
 
+// GetOverviewStats retrieves general overview statistics for the database.
 func (db *DB) GetOverviewStats(ctx context.Context) (*OverviewStats, error) {
 	var stats OverviewStats
 
@@ -109,6 +112,7 @@ err := db.conn.QueryRow(ctx, `
 	return &stats, nil
 }
 
+// GetActiveQueries retrieves a list of currently active queries.
 func (db *DB) GetActiveQueries(ctx context.Context) ([]ActiveQuery, error) {
 	rows, err := db.conn.Query(ctx, `
 		SELECT
@@ -151,6 +155,7 @@ func (db *DB) GetActiveQueries(ctx context.Context) ([]ActiveQuery, error) {
 	return queries, nil
 }
 
+// GetWALStats retrieves Write-Ahead Logging statistics.
 func (db *DB) GetWALStats(ctx context.Context) (*WALStats, error) {
 	var stats WALStats
 
@@ -203,6 +208,7 @@ stats.LastVacuum = lastVacuum
 	return &stats, nil
 }
 
+// GetLocks retrieves information about current database locks.
 func (db *DB) GetLocks(ctx context.Context) ([]LockInfo, error) {
 	rows, err := db.conn.Query(ctx, `
 		SELECT

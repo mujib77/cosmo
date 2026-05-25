@@ -30,10 +30,12 @@ type dataMsg struct {
 	err error
 }
 
+// New creates and initializes a new Model instance.
 func New(database *db.DB) Model {
 	return Model{db: database, loading: true,}
 }
 
+// Init initializes the model, fetching initial data and starting the ticker.
 func (m Model) Init() tea.Cmd{
 	return tea.Batch(
 		m.fetchData(),
@@ -41,12 +43,14 @@ func (m Model) Init() tea.Cmd{
 	)
 }
 
+// tick returns a tea.Cmd that sends a tickMsg after an interval.
 func tick() tea.Cmd {
 	return tea.Tick(2*time.Second, func(t time.Time) tea.Msg {
 		return tickMsg(t)
 	})
 }
 
+// fetchData retrieves all the required stats from the database asynchronously.
 func (m Model) fetchData() tea.Cmd {
 	return func() tea.Msg {
 		ctx := context.Background()
@@ -80,6 +84,7 @@ func (m Model) fetchData() tea.Cmd {
 	}
 }
 
+// Update handles messages and updates the model state.
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
@@ -113,6 +118,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, nil
 	}
 
+// View renders the application UI based on the current model state.
 func (m Model) View() string {
 	if m.loading {
 		return "\n connecting to postgres...\n"
