@@ -275,7 +275,7 @@ func progressBarInverted(value int, max int, width int) string {
 	filled := int(pct * float64(width))
 	empty := width - filled
 
-	bar := strings.Repeat("░", filled) + strings.Repeat("█", empty)
+	bar := strings.Repeat("█", filled) + strings.Repeat("░", empty)
 
 	if pct > 0.95 {
 		return goodStyle.Render(bar)
