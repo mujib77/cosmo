@@ -77,35 +77,46 @@ type LockInfo struct {
 func (db *DB) GetOverviewStats(ctx context.Context) (*OverviewStats, error) {
 	var stats OverviewStats
 
-err := db.conn.QueryRow(ctx, `
-    SELECT
-        current_database(),
-        split_part(version(), ' ', 2),
-        pg_size_pretty(pg_database_size(current_database())),
-        count(*) FILTER (WHERE state = 'active'),
-        count(*) FILTER (WHERE state = 'idle'),
-        current_setting('max_connections')::int,
-        date_trunc('second', now() - pg_postmaster_start_time())::text,
-        ROUND(
-            sum(blks_hit) * 100.0 / NULLIF(sum(blks_hit) + sum(blks_read), 0),
-            2
-        ),
-        sum(xact_commit + xact_rollback)
-    FROM pg_stat_activity, pg_stat_database
-    WHERE pg_stat_database.datname = current_database()
-    GROUP BY 1, 2, 3, 6, 7
-    LIMIT 1
-`).Scan(
-    &stats.DatabaseName,
-    &stats.Version,
-    &stats.TotalSize,
-    &stats.ActiveConns,
-    &stats.IdleConns,
-    &stats.MaxConns,
-    &stats.Uptime,
-    &stats.CacheHitRatio,
-    &stats.TransactionsPS,
-)
+	err := db.conn.QueryRow(ctx, `
+		WITH activity AS (
+			SELECT 
+				COUNT(*) FILTER (WHERE state = 'active') as active_conns,
+				COUNT(*) FILTER (WHERE state = 'idle') as idle_conns
+			FROM pg_stat_activity
+		),
+		db_stats AS (
+			SELECT
+				ROUND(
+					SUM(blks_hit) * 100.0 / NULLIF(SUM(blks_hit) + SUM(blks_read), 0),
+					2
+				) as cache_hit_ratio,
+				SUM(xact_commit + xact_rollback) as total_xact
+			FROM pg_stat_database
+			WHERE datname = CURRENT_DATABASE()
+			GROUP BY datname
+		)
+		SELECT
+			CURRENT_DATABASE(),
+			SPLIT_PART(VERSION(), ' ', 2),
+			PG_SIZE_PRETTY(PG_DATABASE_SIZE(CURRENT_DATABASE())),
+			COALESCE(activity.active_conns, 0),
+			COALESCE(activity.idle_conns, 0),
+			CURRENT_SETTING('max_connections')::int,
+			DATE_TRUNC('second', NOW() - PG_POSTMASTER_START_TIME())::text,
+			COALESCE(db_stats.cache_hit_ratio, 0.0),
+			COALESCE(db_stats.total_xact, 0)
+		FROM activity, db_stats
+	`).Scan(
+		&stats.DatabaseName,
+		&stats.Version,
+		&stats.TotalSize,
+		&stats.ActiveConns,
+		&stats.IdleConns,
+		&stats.MaxConns,
+		&stats.Uptime,
+		&stats.CacheHitRatio,
+		&stats.TransactionsPS,
+	)
 	if err != nil {
 		return nil, err
 	}
