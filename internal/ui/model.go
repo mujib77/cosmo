@@ -125,3 +125,5 @@ func (m Model) View() string {
 	}
 	return RenderDashboard(m)
 }
+
+// test for kommit
