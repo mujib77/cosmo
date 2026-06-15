@@ -1,12 +1,19 @@
-# Cosmo
+# COSMO
 
-![License](https://img.shields.io/badge/license-MIT-blue)
-![Version](https://img.shields.io/badge/version-v0.2.0-cyan)
-![Go](https://img.shields.io/badge/Go-1.26+-00ADD8)
+<p align="center">
+  <strong>A PostgreSQL flight deck for your terminal.</strong><br>
+  Live workload, WAL, MVCC, cache, connections, and lock contention without leaving the shell.
+</p>
 
-A real-time PostgreSQL internals dashboard for your terminal. Built in Go using Bubbletea and Lipgloss.
+<p align="center">
+  <img alt="License" src="https://img.shields.io/badge/license-MIT-22d3ee">
+  <img alt="Version" src="https://img.shields.io/badge/version-v0.3.0-a78bfa">
+  <img alt="Go" src="https://img.shields.io/badge/Go-1.26+-00ADD8">
+  <img alt="PostgreSQL" src="https://img.shields.io/badge/PostgreSQL-17+-336791">
+</p>
 
-![startup](Wi.gif)
+
+![startup](cos.gif)
 
 ---
 
@@ -20,43 +27,42 @@ No browser. No external service. No configuration beyond a database URL. Just ru
 
 ---
 
-## Features
+## Flight Deck
 
-**DB Overview panel**
-- Database name and PostgreSQL version
-- Database size
-- Active connections with visual progress bar
-- Cache hit ratio with visual progress bar and health colors
-- Server uptime
-- Total transaction count (comma formatted)
+**Database vitals**
 
-**Active Queries panel**
-- Live view of all running queries
-- Query state (active, idle, idle in transaction)
-- Duration — how long each query has been running
-- Truncated query text
+- connection load and idle sessions
+- cache efficiency with health-aware status
+- database size, version, uptime, and transaction count
+- rolling connection and cache sparklines
 
-**WAL & MVCC panel**
-- Current WAL LSN (Log Sequence Number)
-- Real-time WAL write rate in MB/s with progress bar
-- Dead tuples and live tuples
-- Checkpoint count
-- Last autovacuum time
+**Workload**
 
-**Locks & Waits panel**
-- Active lock type and status (granted/waiting)
-- Which table is locked
-- PID of the process holding or waiting for the lock
-- Query text
+- active session count and trend
+- PID, state, duration, and normalized query text
+- fast visual distinction between active, idle, and idle-in-transaction sessions
 
-**General**
-- Mission control boot sequence on startup
-- Auto-refreshes every 2 seconds
-- Health-based colors — green for healthy, amber for warning, red for critical
-- Live clock in header
-- TAB to switch between panels
-- R to manually refresh
-- Q to quit
+**WAL + MVCC**
+
+- real-time WAL throughput and recent trend
+- current WAL LSN
+- live and dead tuple counts from `pg_stat_user_tables`
+- table bloat signal and last autovacuum
+
+**Contention**
+
+- waiting and granted locks
+- lock type, table, PID, wait event, and query
+- clear system state when no lock pressure exists
+
+**Interface**
+
+- animated telemetry boot sequence
+- responsive four-panel and compact single-panel layouts
+- numbered panel navigation and visible keyboard hints
+- active-panel focus treatment
+- manual refresh plus sync age
+
 
 ---
 
@@ -168,13 +174,15 @@ go run main.go
 
 ---
 
-## Keyboard shortcuts
+## Controls
 
 | Key | Action |
-|-----|--------|
-| TAB | Switch active panel |
-| R | Manual refresh |
-| Q | Quit |
+| --- | --- |
+| `Tab` / `Shift+Tab` | Move between panels |
+| `←` / `→` or `H` / `L` | Move between panels |
+| `1` - `4` | Jump directly to a panel |
+| `R` | Refresh telemetry |
+| `Q` | Quit |
 
 ---
 
@@ -191,4 +199,3 @@ go run main.go
 
 MIT — see [LICENSE](LICENSE)
 
-# test
