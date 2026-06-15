@@ -8,8 +8,8 @@ import (
 )
 
 type DB struct {
-	conn *pgxpool.Pool
-	prevLSN int64
+	conn     *pgxpool.Pool
+	prevLSN  int64
 	prevTime time.Time
 }
 
@@ -19,7 +19,7 @@ func New(databaseURL string) (*DB, error) {
 		return nil, err
 	}
 	return &DB{
-		conn: pool,
+		conn:     pool,
 		prevTime: time.Now(),
 	}, nil
 }
@@ -29,17 +29,16 @@ func (db *DB) Close() {
 }
 
 type OverviewStats struct {
-	DatabaseName    string
-	Version		    string
-	TotalSize       string
-	ActiveConns     int
-	IdleConns       int
-	MaxConns        int
-	Uptime          string
-	CacheHitRatio   float64
-	TransactionsPS  int64
+	DatabaseName   string
+	Version        string
+	TotalSize      string
+	ActiveConns    int
+	IdleConns      int
+	MaxConns       int
+	Uptime         string
+	CacheHitRatio  float64
+	TransactionsPS int64
 }
-
 
 type ActiveQuery struct {
 	PID      int
@@ -51,58 +50,69 @@ type ActiveQuery struct {
 }
 
 type WALStats struct {
-	CurrentLSN     string
-	WALBytesPS     int64
-	DeadTuples     int64
-	LiveTuples     int64
+	CurrentLSN      string
+	WALBytesPS      int64
+	DeadTuples      int64
+	LiveTuples      int64
 	AutovacuumCount int64
-	CheckpointsPS  int64
+	CheckpointsPS   int64
 	WALRateMBPS     float64
 	LastVacuum      string
 }
 
 type LockInfo struct {
-	PID        int
-	Username   string
-	LockType   string
-	Granted    bool
-	WaitEvent  string
-	Query      string
-	Table      string
+	PID       int
+	Username  string
+	LockType  string
+	Granted   bool
+	WaitEvent string
+	Query     string
+	Table     string
 }
 
 func (db *DB) GetOverviewStats(ctx context.Context) (*OverviewStats, error) {
 	var stats OverviewStats
 
-err := db.conn.QueryRow(ctx, `
-    SELECT
-        current_database(),
-        split_part(version(), ' ', 2),
-        pg_size_pretty(pg_database_size(current_database())),
-        count(*) FILTER (WHERE state = 'active'),
-        count(*) FILTER (WHERE state = 'idle'),
-        current_setting('max_connections')::int,
-        date_trunc('second', now() - pg_postmaster_start_time())::text,
-        ROUND(
-            sum(blks_hit) * 100.0 / NULLIF(sum(blks_hit) + sum(blks_read), 0),
-            2
-        ),
-        sum(xact_commit + xact_rollback)
-    FROM pg_stat_activity, pg_stat_database
-    WHERE pg_stat_database.datname = current_database()
-    GROUP BY 1, 2, 3, 6, 7
-    LIMIT 1
-`).Scan(
-    &stats.DatabaseName,
-    &stats.Version,
-    &stats.TotalSize,
-    &stats.ActiveConns,
-    &stats.IdleConns,
-    &stats.MaxConns,
-    &stats.Uptime,
-    &stats.CacheHitRatio,
-    &stats.TransactionsPS,
-)
+	err := db.conn.QueryRow(ctx, `
+		WITH activity AS (
+			SELECT 
+				COUNT(*) FILTER (WHERE state = 'active') as active_conns,
+				COUNT(*) FILTER (WHERE state = 'idle') as idle_conns
+			FROM pg_stat_activity
+		),
+		db_stats AS (
+			SELECT
+				ROUND(
+					SUM(blks_hit) * 100.0 / NULLIF(SUM(blks_hit) + SUM(blks_read), 0),
+					2
+				) as cache_hit_ratio,
+				SUM(xact_commit + xact_rollback) as total_xact
+			FROM pg_stat_database
+			WHERE datname = CURRENT_DATABASE()
+			GROUP BY datname
+		)
+		SELECT
+			CURRENT_DATABASE(),
+			SPLIT_PART(VERSION(), ' ', 2),
+			PG_SIZE_PRETTY(PG_DATABASE_SIZE(CURRENT_DATABASE())),
+			COALESCE(activity.active_conns, 0),
+			COALESCE(activity.idle_conns, 0),
+			CURRENT_SETTING('max_connections')::int,
+			DATE_TRUNC('second', NOW() - PG_POSTMASTER_START_TIME())::text,
+			COALESCE(db_stats.cache_hit_ratio, 0.0),
+			COALESCE(db_stats.total_xact, 0)
+		FROM activity, db_stats
+	`).Scan(
+		&stats.DatabaseName,
+		&stats.Version,
+		&stats.TotalSize,
+		&stats.ActiveConns,
+		&stats.IdleConns,
+		&stats.MaxConns,
+		&stats.Uptime,
+		&stats.CacheHitRatio,
+		&stats.TransactionsPS,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -155,41 +165,47 @@ func (db *DB) GetWALStats(ctx context.Context) (*WALStats, error) {
 	var stats WALStats
 
 	err := db.conn.QueryRow(ctx, `
-    SELECT
-        pg_current_wal_lsn()::text,
-        pg_wal_lsn_diff(pg_current_wal_lsn(), '0/0'),
-        0::bigint,
-        0::bigint,
-		0::bigint,
-        num_timed + num_requested
-    FROM pg_stat_checkpointer
-    LIMIT 1
+		WITH tuples AS (
+			SELECT
+				COALESCE(SUM(n_dead_tup), 0)::bigint AS dead_tuples,
+				COALESCE(SUM(n_live_tup), 0)::bigint AS live_tuples,
+				COALESCE(SUM(autovacuum_count), 0)::bigint AS autovacuum_count
+			FROM pg_stat_user_tables
+		)
+		SELECT
+			pg_current_wal_lsn()::text,
+			pg_wal_lsn_diff(pg_current_wal_lsn(), '0/0'),
+			t.dead_tuples,
+			t.live_tuples,
+			t.autovacuum_count,
+			c.num_timed + c.num_requested
+		FROM pg_stat_checkpointer c
+		CROSS JOIN tuples t
+		LIMIT 1
 `).Scan(
-    &stats.CurrentLSN,
-    &stats.WALBytesPS,
-    &stats.DeadTuples,
-    &stats.LiveTuples,
-    &stats.AutovacuumCount,
-    &stats.CheckpointsPS,
-)
-
-var lastVacuum string
-err = db.conn.QueryRow(ctx, `
-    SELECT 
-        COALESCE(
-            date_trunc('second', now() - max(last_autovacuum))::text,
-            'never'
-        )
-    FROM pg_stat_user_tables
-`).Scan(&lastVacuum)
-if err != nil || lastVacuum == "" {
-    lastVacuum = "never"
-}
-stats.LastVacuum = lastVacuum
-
+		&stats.CurrentLSN,
+		&stats.WALBytesPS,
+		&stats.DeadTuples,
+		&stats.LiveTuples,
+		&stats.AutovacuumCount,
+		&stats.CheckpointsPS,
+	)
 	if err != nil {
 		return nil, err
 	}
+
+	var lastVacuum string
+	err = db.conn.QueryRow(ctx, `
+		SELECT COALESCE(
+			date_trunc('second', now() - max(last_autovacuum))::text,
+			'never'
+		)
+		FROM pg_stat_user_tables
+	`).Scan(&lastVacuum)
+	if err != nil || lastVacuum == "" {
+		lastVacuum = "never"
+	}
+	stats.LastVacuum = lastVacuum
 
 	now := time.Now()
 	elapsed := now.Sub(db.prevTime).Seconds()
@@ -218,10 +234,13 @@ func (db *DB) GetLocks(ctx context.Context) ([]LockInfo, error) {
 		LEFT JOIN pg_class c ON l.relation = c.oid
 		WHERE a.query NOT LIKE '%pg_locks%'
 		AND a.query NOT LIKE '%pg_stat%'
-		AND l.granted = true
-		AND a.state = 'active'
 		AND a.pid != pg_backend_pid()
-		ORDER BY l.granted ASC
+		AND (
+			l.granted = false
+			OR a.wait_event IS NOT NULL
+			OR a.state = 'active'
+		)
+		ORDER BY l.granted ASC, a.query_start ASC
 		LIMIT 10
 	`)
 	if err != nil {
