@@ -9,32 +9,38 @@ import (
 )
 
 type Model struct {
-	db *db.DB
-	overview *db.OverviewStats
-	queries []db.ActiveQuery
-	walStats *db.WALStats
-	locks []db.LockInfo
-	width int
-	height int
-	err error
-	loading bool
-	activePanel int
+	db             *db.DB
+	overview       *db.OverviewStats
+	queries        []db.ActiveQuery
+	walStats       *db.WALStats
+	locks          []db.LockInfo
+	width          int
+	height         int
+	err            error
+	loading        bool
+	refreshing     bool
+	activePanel    int
+	lastUpdated    time.Time
+	connectionData []float64
+	cacheData      []float64
+	walData        []float64
+	queryData      []float64
 }
 
 type tickMsg time.Time
 type dataMsg struct {
 	overview *db.OverviewStats
-	queries []db.ActiveQuery
+	queries  []db.ActiveQuery
 	walStats *db.WALStats
-	locks []db.LockInfo
-	err error
+	locks    []db.LockInfo
+	err      error
 }
 
 func New(database *db.DB) Model {
-	return Model{db: database, loading: true,}
+	return Model{db: database, loading: true}
 }
 
-func (m Model) Init() tea.Cmd{
+func (m Model) Init() tea.Cmd {
 	return tea.Batch(
 		m.fetchData(),
 		tick(),
@@ -73,45 +79,70 @@ func (m Model) fetchData() tea.Cmd {
 
 		return dataMsg{
 			overview: overview,
-			queries: queries,
+			queries:  queries,
 			walStats: walStats,
-			locks: locks,
+			locks:    locks,
 		}
 	}
 }
 
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
-	case tea.KeyMsg:
+  case tea.KeyMsg:
 		switch msg.String() {
-			case "q", "ctrl+c":
-				return m, tea.Quit
-			case "tab":
-				m.activePanel = (m.activePanel + 1) % 4
-			case "r", "R":
-				return m, m.fetchData()
-			}
+  case "q", "ctrl+c":
+			return m, tea.Quit
+  case "tab":
+			m.activePanel = (m.activePanel + 1) % 4
+  case "shift+tab":
+			m.activePanel = (m.activePanel + 3) % 4
 		
-		case tea.WindowSizeMsg:
-			m.width = msg.Width
-			m.height = msg.Height
-
-	    case tickMsg:
-			return m, tea.Batch(m.fetchData(), tick())
-
-		case dataMsg:
-			m.loading = false
-			if msg.err != nil {
-				m.err = msg.err
-				return m, nil
-			}
-			m.overview = msg.overview
-			m.queries = msg.queries
-			m.walStats = msg.walStats
-			m.locks = msg.locks
+  case "left", "h":
+			m.activePanel = (m.activePanel + 3) % 4
+   case "right", "l":
+			m.activePanel = (m.activePanel + 1) % 4
+   case "1", "2", "3", "4":
+			m.activePanel = int(msg.Runes[0] - '1')
+	case "r", "R":
+			m.refreshing = true
+			return m, m.fetchData()
 		}
-	return m, nil
+
+	case tea.WindowSizeMsg:
+		m.width = msg.Width
+		m.height = msg.Height
+
+	case tickMsg:
+		return m, tea.Batch(m.fetchData(), tick())
+
+	case dataMsg:
+		m.loading = false
+		m.refreshing = false
+		if msg.err != nil {
+			m.err = msg.err
+			return m, nil
+		}
+		m.err = nil
+		m.overview = msg.overview
+		m.queries = msg.queries
+		m.walStats = msg.walStats
+		m.locks = msg.locks
+		m.lastUpdated = time.Now()
+		m.connectionData = appendSample(m.connectionData, float64(msg.overview.ActiveConns), 24)
+		m.cacheData = appendSample(m.cacheData, msg.overview.CacheHitRatio, 24)
+		m.walData = appendSample(m.walData, msg.walStats.WALRateMBPS, 24)
+		m.queryData = appendSample(m.queryData, float64(len(msg.queries)), 24)
 	}
+	return m, nil
+}
+
+func appendSample(samples []float64, value float64, limit int) []float64 {
+	samples = append(samples, value)
+	if len(samples) > limit {
+		samples = samples[len(samples)-limit:]
+	}
+	return samples
+}
 
 func (m Model) View() string {
 	if m.loading {
@@ -125,5 +156,3 @@ func (m Model) View() string {
 	}
 	return RenderDashboard(m)
 }
-
-// test for kommit

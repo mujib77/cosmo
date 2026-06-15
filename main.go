@@ -18,10 +18,10 @@ const (
 )
 
 type rootModel struct {
-	state   appState
-	startup ui.StartupModel
+	state     appState
+	startup   ui.StartupModel
 	dashboard ui.Model
-	db      *db.DB
+	db        *db.DB
 }
 
 func (r rootModel) Init() tea.Cmd {
@@ -29,30 +29,30 @@ func (r rootModel) Init() tea.Cmd {
 }
 
 func (r rootModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-    switch msg := msg.(type) {
-    case tea.KeyMsg:
-        if msg.String() == "ctrl+c" || msg.String() == "q" {
-            return r, tea.Quit
-        }
-    case tea.WindowSizeMsg:
-        // always pass window size to dashboard
-        newDashboard, _ := r.dashboard.Update(msg)
-        r.dashboard = newDashboard.(ui.Model)
-    }
+	switch msg := msg.(type) {
+	case tea.KeyMsg:
+		if msg.String() == "ctrl+c" || msg.String() == "q" {
+			return r, tea.Quit
+		}
+	case tea.WindowSizeMsg:
+		// always pass window size to dashboard
+		newDashboard, _ := r.dashboard.Update(msg)
+		r.dashboard = newDashboard.(ui.Model)
+	}
 
-    if r.state == stateStartup {
-        newStartup, cmd := r.startup.Update(msg)
-        r.startup = newStartup
-        if r.startup.Done {
-            r.state = stateDashboard
-            return r, r.dashboard.Init()
-        }
-        return r, cmd
-    }
+	if r.state == stateStartup {
+		newStartup, cmd := r.startup.Update(msg)
+		r.startup = newStartup
+		if r.startup.Done {
+			r.state = stateDashboard
+			return r, r.dashboard.Init()
+		}
+		return r, cmd
+	}
 
-    newDashboard, cmd := r.dashboard.Update(msg)
-    r.dashboard = newDashboard.(ui.Model)
-    return r, cmd
+	newDashboard, cmd := r.dashboard.Update(msg)
+	r.dashboard = newDashboard.(ui.Model)
+	return r, cmd
 }
 
 func (r rootModel) View() string {
